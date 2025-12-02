@@ -149,15 +149,22 @@ Replace with your own LiDAR dataset for real workflows.
 
 ## 👥 Authors
 
-Dr inż. Tomasz Kogut
-Karol Kabała
-Katedra Geodezji i Pomiarów Offshore
-Politechnika Morska w Szczecinie
+- **Tomasz Kogut**  
+  Maritime University of Szczecin  
+  📧 t.kogut@pm.szczecin.pl
 
-**Contact:**
-- t.kogut@pm.szczecin.pl
-- k.kabala@pm.szczecin.pl
+- **Karol Kabała**  
+  Maritime University of Szczecin  
+  📧 k.kabala@pm.szczecin.pl
 
+- **Małgorzata Jarząbek-Rychard**  
+  Wroclaw University of Environmental and Life Sciences
+  📧 malgorzata.jarzabek-rychard@upwr.edu.pl
+
+- **Arkadiusz Tomczak**  
+  Maritime University of Szczecin
+  📧 a.tomczak@pm.szczecin.pl
+  
 ## 📄 License
 
 MIT License
@@ -167,11 +174,12 @@ MIT License
 ``` bibtex
 @article{Kogut2025LidarBathySeg,
   title={LidarBathySeg: A Python library for unsupervised segmentation of coastal and shallow-water LiDAR point clouds},
-  author={Kogut, Tomasz and Kabała, Karol},
+  author={Kogut, Tomasz and Kabała, Karol and Jarząbek-Rychard, Małgorzata and Tomczak, Arkadiusz},
   journal={TODO},
   year={2025},
   volume={TODO},
   pages={TODO},
   doi={TODO}
+}
 }
 ```
