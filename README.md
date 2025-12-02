@@ -158,11 +158,11 @@ Replace with your own LiDAR dataset for real workflows.
   📧 k.kabala@pm.szczecin.pl
 
 - **Małgorzata Jarząbek-Rychard**  
-  Wroclaw University of Environmental and Life Sciences
+  Wroclaw University of Environmental and Life Sciences  
   📧 malgorzata.jarzabek-rychard@upwr.edu.pl
 
 - **Arkadiusz Tomczak**  
-  Maritime University of Szczecin
+  Maritime University of Szczecin  
   📧 a.tomczak@pm.szczecin.pl
   
 ## 📄 License
