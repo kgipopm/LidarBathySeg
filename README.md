@@ -173,7 +173,7 @@ MIT License
 
 ``` bibtex
 @article{Kogut2025LidarBathySeg,
-  title={LidarBathySeg: A Python library for unsupervised segmentation of coastal and shallow-water LiDAR point clouds},
+  title={LidarBathySeg: An open-source Python software for water surface–seabed segmentation from Airborne Laser Bathymetry},
   author={Kogut, Tomasz and Kabała, Karol and Jarząbek-Rychard, Małgorzata and Tomczak, Arkadiusz},
   journal={TODO},
   year={2025},
