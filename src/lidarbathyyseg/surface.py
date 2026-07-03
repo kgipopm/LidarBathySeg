@@ -154,7 +154,7 @@ def plot_surface(
     )])
     fig.update_layout(
         title="Interpolated seabed surface",
-        scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
+        scene=dict(xaxis_title="X [m]", yaxis_title="Y [m]", zaxis_title="Z [m]"),
     )
 
     xr = (float(np.nanmin(X_grid)), float(np.nanmax(X_grid)))

@@ -279,8 +279,8 @@ def plot_xz_classification(
 
     heading = f"XZ classification – {title}" if title else "XZ classification"
     ax.set_title(heading, fontsize=10)
-    ax.set_xlabel("X (along-shore axis)")
-    ax.set_ylabel("Z (depth)")
+    ax.set_xlabel("X [m]")
+    ax.set_ylabel("Z [m]")
     ax.legend(loc="lower right", fontsize=8, markerscale=2)
     ax.grid(True, alpha=0.25, linewidth=0.6)
 

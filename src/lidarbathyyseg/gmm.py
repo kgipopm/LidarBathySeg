@@ -15,6 +15,8 @@ def check_best_gmm_model(
     output_dir: Optional[str] = None,
     saveplot: bool = True,
     gmm_max_points: int = 50_000,
+    context_cloud: Optional[np.ndarray] = None,
+    chunk_x_bounds: Optional[tuple] = None,
 ) -> Dict[str, Any]:
     """Fit 1- and 2-component GMMs to the Z column and select the winner via BIC.
 
@@ -34,6 +36,14 @@ def check_best_gmm_model(
         points are more than sufficient for stable parameter estimates, so
         subsampling dramatically speeds up processing of large clouds without
         any loss in accuracy.  Set to ``0`` or ``None`` to disable.
+    context_cloud:
+        Optional (M, ≥3) array of the full point cloud (or a subsample of
+        it) shown as background in the XZ profile panel.  When provided a
+        third panel is added to the diagnostic figure.
+    chunk_x_bounds:
+        ``(x_lower, x_upper)`` of this chunk — used to shade the fitted
+        region in the XZ profile panel.  Ignored when *context_cloud* is
+        ``None``.
 
     Returns
     -------
@@ -88,33 +98,65 @@ def check_best_gmm_model(
         os.makedirs(output_dir, exist_ok=True)
 
         z_lin = np.linspace(z.min(), z.max(), 1000).reshape(-1, 1)
-        fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
-        axs[0].hist(z, bins=50, density=True, alpha=0.4, color="gray", label="Histogram Z")
-        for i, (gmm, n) in enumerate(zip(models, (1, 2))):
-            axs[0].plot(z_lin, np.exp(gmm.score_samples(z_lin)),
-                        label=f"{n} Gauss(s), BIC={bics[i]:.1f}")
-        axs[0].set_title("GMM fit to Z axis")
-        axs[0].set_xlabel("Z")
-        axs[0].set_ylabel("Density")
-        axs[0].legend()
-        axs[0].grid(True)
+        show_profile = context_cloud is not None and context_cloud.shape[1] >= 3
+        n_panels = 3 if show_profile else 2
+        fig, axs = plt.subplots(1, n_panels, figsize=(6 * n_panels, 5))
 
-        x = np.arange(2)
+        if show_profile:
+            ax_xz, ax_hist, ax_bic = axs
+            # XZ profile: full cloud (background) + this chunk (highlighted)
+            ax_xz.scatter(
+                context_cloud[:, 0], context_cloud[:, 2],
+                c="#aaaaaa", s=0.8, alpha=0.20, rasterized=True, label="Full cloud",
+            )
+            ax_xz.scatter(
+                points_xyz[:, 0], points_xyz[:, 2],
+                c="#e63946", s=1.5, alpha=0.45, rasterized=True, label="This chunk",
+            )
+            if chunk_x_bounds is not None:
+                ax_xz.axvspan(
+                    chunk_x_bounds[0], chunk_x_bounds[1],
+                    alpha=0.08, color="#e63946",
+                )
+            ax_xz.set_title("Pointcloud profile (XZ)")
+            ax_xz.set_xlabel("X [m]")
+            ax_xz.set_ylabel("Z [m]")
+            ax_xz.legend(fontsize=8, markerscale=3)
+            ax_xz.grid(True, alpha=0.35)
+        else:
+            ax_hist, ax_bic = axs
+
+        ax_hist.hist(z, bins=50, density=True, alpha=0.4, color="gray", label="Z histogram")
+        for i, (gmm_i, n) in enumerate(zip(models, (1, 2))):
+            ax_hist.plot(z_lin, np.exp(gmm_i.score_samples(z_lin)),
+                         label=f"{n} Gauss(s), BIC={bics[i]:.1f}")
+        ax_hist.set_title("GMM fit to Z axis")
+        ax_hist.set_xlabel("Z [m]")
+        ax_hist.set_ylabel("Density")
+        ax_hist.legend()
+        ax_hist.grid(True)
+
+        x_pos = np.arange(2)
         w = 0.35
-        axs[1].bar(x - w / 2, bics, w, label="BIC")
-        axs[1].bar(x + w / 2, aics, w, label="AIC")
-        axs[1].set_xticks(x)
-        axs[1].set_xticklabels(["1 Gauss", "2 Gauss"])
-        axs[1].set_title("BIC vs AIC")
-        axs[1].legend()
-        axs[1].grid(True)
+        ax_bic.bar(x_pos - w / 2, bics, w, label="BIC")
+        ax_bic.bar(x_pos + w / 2, aics, w, label="AIC")
+        ax_bic.set_xticks(x_pos)
+        ax_bic.set_xticklabels(["1 Gauss", "2 Gauss"])
+        ax_bic.set_title("Comparison of BIC and AIC")
+        ax_bic.set_xlabel("Model")
+        ax_bic.set_ylabel("Score")
+        ax_bic.legend()
+        ax_bic.grid(True)
 
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "gmm_fit_z.png"))
+        plt.savefig(os.path.join(output_dir, "gmm_fit_z.png"), dpi=110)
         plt.close()
 
     return result
+
+
+_MAX_CONTEXT_DISPLAY = 5_000
 
 
 def find_best_gmm(
@@ -140,6 +182,20 @@ def find_best_gmm(
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
 
+    # Build a small display subsample of the full cloud for the XZ profile panel.
+    # Subsampled to _MAX_CONTEXT_DISPLAY points so each joblib worker receives a
+    # tiny copy rather than the full (potentially multi-GB) cloud.
+    if saveplot and chunks:
+        full_cloud = np.vstack([c["chunk"] for c in chunks])
+        if len(full_cloud) > _MAX_CONTEXT_DISPLAY:
+            rng = np.random.default_rng(0)
+            idx = rng.choice(len(full_cloud), _MAX_CONTEXT_DISPLAY, replace=False)
+            display_cloud: Optional[np.ndarray] = full_cloud[idx]
+        else:
+            display_cloud = full_cloud
+    else:
+        display_cloud = None
+
     def _worker(i: int, chunk: Dict) -> Dict:
         local_dir = os.path.join(output_dir, str(i)) if output_dir else None
         if local_dir:
@@ -147,6 +203,8 @@ def find_best_gmm(
         return check_best_gmm_model(
             chunk["chunk"], output_dir=local_dir,
             saveplot=saveplot, gmm_max_points=gmm_max_points,
+            context_cloud=display_cloud,
+            chunk_x_bounds=(chunk.get("lower"), chunk.get("upper")),
         )
 
     return Parallel(n_jobs=-1)(
@@ -203,13 +261,13 @@ def analyze_gmm_fragments(
     axs[0].plot(means1, marker="o", label="Gauss #1 (higher mean)")
     axs[0].plot(means2, marker="o", label="Gauss #2 (lower mean)")
     axs[0].set_title("Component means across chunks")
-    axs[0].set_ylabel("Mean")
+    axs[0].set_ylabel("Mean [m]")
     axs[0].legend()
     axs[0].grid(True)
     axs[1].plot(stds1, marker="o", label="Gauss #1")
     axs[1].plot(stds2, marker="o", label="Gauss #2")
     axs[1].set_title("Component std across chunks")
-    axs[1].set_ylabel("Std")
+    axs[1].set_ylabel("Std [m]")
     axs[1].set_xlabel("Chunk index (2-component only)")
     axs[1].legend()
     axs[1].grid(True)
